@@ -1,4 +1,5 @@
 using DataAccess;
+using Business;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -9,6 +10,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddDataAccessServices(builder.Configuration);
 
+builder.Services.AddBusinessServices();
 
 var app = builder.Build();
 
