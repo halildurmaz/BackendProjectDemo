@@ -1,5 +1,6 @@
 ﻿using Business.Abstract;
 using Business.Concrete;
+using Business.Rules;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -21,8 +22,8 @@ public static class BusinessServiceRegistration
 
         services.AddScoped<ICategoryService, CategoryManager>();
 
-        //services.AddScoped<ProductBusinessRules>();
-        //services.AddScoped<CategoryBusinessRules>()
+        services.AddScoped<ProductBusinessRules>();
+        services.AddScoped<CategoryBusinessRules>();
 
 
 

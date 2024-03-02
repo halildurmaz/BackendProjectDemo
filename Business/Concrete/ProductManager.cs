@@ -1,6 +1,7 @@
 ﻿using Business.Abstract;
 using Business.Dtos.Requests;
 using Business.Dtos.Responses;
+using Business.Rules;
 using DataAccess.Abstract;
 using DataAccess.Concrete;
 using Entities.Concrete;
@@ -15,14 +16,17 @@ namespace Business.Concrete;
 public class ProductManager : IProductService
 {
     private readonly IProductDal _productDal;
+    private readonly ProductBusinessRules _productBusinessRules;
 
-    public ProductManager(IProductDal productDal)
+    public ProductManager(IProductDal productDal, ProductBusinessRules productBusinessRules)
     {
         _productDal = productDal;
+        _productBusinessRules = productBusinessRules;
     }
 
     public ProductAddResponse Add(ProductAddRequest productAddRequest)
     {
+        _productBusinessRules.ProductNameShouldBeCanNotDuplicatedWhenInserted(productAddRequest.Name);
         Product product = new Product();
 
         product.Name = productAddRequest.Name;
@@ -45,10 +49,37 @@ public class ProductManager : IProductService
         return productAddResponse;
     }
 
+    public ProductUpdateResponse Update(ProductUpdateRequest productUpdateRequest)
+    {
+        Product product = _productDal.Get(c => c.Id == productUpdateRequest.Id);
+        _productBusinessRules.ProductShouldBeExistsWhenSelected(product);
+        product.Id = productUpdateRequest.Id;
+        product.Name = productUpdateRequest.Name;
+        product.UnitPrice = productUpdateRequest.UnitPrice;
+        product.StockAmount = productUpdateRequest.StockAmount;
+        product.CategoryId = productUpdateRequest.CategoryId;
+        product.UpdatedDate = DateTime.Now;
+
+        _productBusinessRules.ProductNameShouldBeCanNotDuplicatedWhenUpdated(product);
+
+        var updatedProduct = _productDal.Update(product);
+        ProductUpdateResponse productUpdateResponse = new ProductUpdateResponse();
+        productUpdateResponse.Id = updatedProduct.Id;
+        productUpdateResponse.Name = updatedProduct.Name;
+        productUpdateResponse.UnitPrice = updatedProduct.UnitPrice;
+        productUpdateResponse.StockAmount = updatedProduct.StockAmount;
+        productUpdateResponse.CategoryId = updatedProduct.CategoryId;
+        productUpdateResponse.CreatedDate = updatedProduct.CreatedDate;
+        productUpdateResponse.UpdatedDate = updatedProduct.UpdatedDate;
+
+        return productUpdateResponse;
+    }
+
     public ProductDeleteResponse Delete(ProductDeleteRequest productDeleteRequest)
     {
         Product product = _productDal.Get(c => c.Id == productDeleteRequest.Id);
         product.DeletedDate = DateTime.Now;
+        _productBusinessRules.ProductShouldBeExistsWhenSelected(product);
 
         var deletedProduct = _productDal.Delete(product);
 
@@ -86,9 +117,9 @@ public class ProductManager : IProductService
     public ProductGetByIdResponse GetById(int id)
     {
         Product product = _productDal.Get(c => c.Id == id);
+        _productBusinessRules.ProductShouldBeExistsWhenSelected(product);
 
         ProductGetByIdResponse productGetByIdResponse = new ProductGetByIdResponse();
-
         productGetByIdResponse.Id = product.Id;
         productGetByIdResponse.Name = product.Name;
         productGetByIdResponse.UnitPrice = product.UnitPrice;
@@ -99,28 +130,5 @@ public class ProductManager : IProductService
         return productGetByIdResponse;
     }
 
-    public ProductUpdateResponse Update(ProductUpdateRequest productUpdateRequest)
-    {
-        Product product = _productDal.Get(c => c.Id == productUpdateRequest.Id);
-
-        product.Id = productUpdateRequest.Id;
-        product.Name = productUpdateRequest.Name;
-        product.UnitPrice = productUpdateRequest.UnitPrice;
-        product.StockAmount = productUpdateRequest.StockAmount;
-        product.CategoryId = productUpdateRequest.CategoryId;
-        product.UpdatedDate = DateTime.Now;
-
-
-        var updatedProduct = _productDal.Update(product);
-        ProductUpdateResponse productUpdateResponse = new ProductUpdateResponse();
-        productUpdateResponse.Id = updatedProduct.Id;
-        productUpdateResponse.Name = updatedProduct.Name;
-        productUpdateResponse.UnitPrice = updatedProduct.UnitPrice;
-        productUpdateResponse.StockAmount = updatedProduct.StockAmount;
-        productUpdateResponse.CategoryId = updatedProduct.CategoryId;
-        productUpdateResponse.CreatedDate = updatedProduct.CreatedDate;
-        productUpdateResponse.UpdatedDate = updatedProduct.UpdatedDate;
-
-        return productUpdateResponse;
-    }
+    
 }

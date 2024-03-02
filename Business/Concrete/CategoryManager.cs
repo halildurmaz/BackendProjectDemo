@@ -1,6 +1,7 @@
 ﻿using Business.Abstract;
 using Business.Dtos.Requests;
 using Business.Dtos.Responses;
+using Business.Rules;
 using DataAccess.Abstract;
 using Entities.Concrete;
 using System;
@@ -13,15 +14,18 @@ namespace Business.Concrete;
 
 public class CategoryManager : ICategoryService
 {
+    private readonly CategoryBusinessRules _categoryBusinessRules;
     private readonly ICategoryDal _categoryDal;
 
-    public CategoryManager(ICategoryDal categoryDal)
+    public CategoryManager(CategoryBusinessRules categoryBusinessRules, ICategoryDal categoryDal)
     {
+        _categoryBusinessRules = categoryBusinessRules;
         _categoryDal = categoryDal;
     }
 
     public CategoryAddResponse Add(CategoryAddRequest categoryAddRequest)
     {
+        _categoryBusinessRules.CategoryNameShouldBeCanNotDuplicatedWhenInserted(categoryAddRequest.Name);
         Category category = new Category();
         category.Name = categoryAddRequest.Name;
         category.CreatedDate = DateTime.Now;
@@ -34,10 +38,38 @@ public class CategoryManager : ICategoryService
         return categoryAddResponse;
     }
 
+    public CategoryUpdateResponse Update(CategoryUpdateRequest categoryUpdateRequest)
+    {
+
+
+        Category category = _categoryDal.Get(c => c.Id == categoryUpdateRequest.Id);
+
+        _categoryBusinessRules.CategoryShouldBeExistsWhenSelected(category);
+        
+
+        category.Name = categoryUpdateRequest.Name;
+        category.UpdatedDate = DateTime.Now;
+
+        _categoryBusinessRules.CategoryNameShouldBeCanNotDuplicatedWhenUpdated(category);
+        
+
+        var updatedCategory = _categoryDal.Update(category);
+
+        CategoryUpdateResponse categoryUpdateResponse = new CategoryUpdateResponse();
+        categoryUpdateResponse.Id = updatedCategory.Id;
+        categoryUpdateResponse.Name = updatedCategory.Name;
+        categoryUpdateResponse.CreatedDate = updatedCategory.CreatedDate;
+        categoryUpdateResponse.UpdatedDate = updatedCategory.UpdatedDate;
+
+        return categoryUpdateResponse;
+
+    }
     public CategoryDeleteResponse Delete(CategoryDeleteRequest categoryDeleteRequest)
     {
 
         Category category = _categoryDal.Get(c=>c.Id == categoryDeleteRequest.Id);
+        _categoryBusinessRules.CategoryShouldBeExistsWhenSelected(category);
+
         category.DeletedDate = DateTime.Now;
 
         Category deletedCategory = _categoryDal.Delete(category);
@@ -69,7 +101,7 @@ public class CategoryManager : ICategoryService
     public CategoryGetByIdResponse GetById(int id)
     {
         Category category = _categoryDal.Get(c => c.Id == id);
-
+        _categoryBusinessRules.CategoryShouldBeExistsWhenSelected(category);
         CategoryGetByIdResponse categoryGetByIdResponse = new CategoryGetByIdResponse();
 
         categoryGetByIdResponse.Id = category.Id;
@@ -79,22 +111,5 @@ public class CategoryManager : ICategoryService
         return categoryGetByIdResponse;
     }
 
-    public CategoryUpdateResponse Update(CategoryUpdateRequest categoryUpdateRequest)
-    {
-
-        Category category = _categoryDal.Get(c => c.Id == categoryUpdateRequest.Id);
-        category.Name = categoryUpdateRequest.Name;
-        category.UpdatedDate = DateTime.Now;
-
-
-        var updatedCategory = _categoryDal.Update(category);
-        CategoryUpdateResponse categoryUpdateResponse = new CategoryUpdateResponse();
-        categoryUpdateResponse.Id = updatedCategory.Id;
-        categoryUpdateResponse.Name = updatedCategory.Name;
-        categoryUpdateResponse.CreatedDate = updatedCategory.CreatedDate;
-        categoryUpdateResponse.UpdatedDate = updatedCategory.UpdatedDate;
-
-        return categoryUpdateResponse;
-
-    }
+    
 }
